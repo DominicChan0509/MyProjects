@@ -39,6 +39,6 @@ The .Rmd file could be run by Rmarkdown.
 
 Finally, I attached my current Oxford ML class assignments as reference for the ML model that I am currently implementing particularly in Python. Some notable algorithm that we will be learning to implement in python are SVM, Logistic Regression, Random Forrest, Neutral Networks  and KNN.
 
-I am confident the R code I showed in my imperial Project could be adapted with relatively low effort to Python, after this course. The two assignments that I attached, hopefully would give you a good picture of my progress in the course so far, although with experience in project 1 and 2, writing these codes are not too challenging.
+I am confident the R code I showed in my imperial Project could be adapted with relatively low effort to Python, after this course. The two assignments that I attached, hopefully would give you a good picture of my progress in the course so far, although with experience in the above project 1 and 2, writing these codes are not too challenging.
 
 The data files are self contained in the folders.
