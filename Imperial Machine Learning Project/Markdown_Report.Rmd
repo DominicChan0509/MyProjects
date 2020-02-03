@@ -1,0 +1,987 @@
+---
+title: "M3A50 Coursework 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# might need 5 minutes to knit, thanks for being patient
+```
+
+The following packaged are used in my project.
+```{r, message=FALSE, warning=FALSE}
+require(plyr)
+require(GGally)
+require(scales)
+require(ggplot2)
+require(RColorBrewer)
+require(gridExtra)
+require(ROCR)
+require(boot)
+require(dummies) # might require to install this packages
+require(class)
+require(varhandle) # might require to install this packages
+require(rpart)
+require(plyr)
+require(randomForest) 
+require(factoextra) # might require to install this packages
+require(NbClust) # might require to install this packages
+require(RColorBrewer) 
+```
+
+Might have to run this separately to install the package required
+```{r}
+#lib <- c('dummies','varhandle','factoextra','NbClust')
+#install.packages(lib)
+```
+
+Load dataset.
+```{r load druguse, include=TRUE}
+load("druguse.rdata")
+```
+
+## Question 1
+### 1.1
+#### **(i)**
+The following R code generates the plot with country on the x-axis and the colours on the bars represent the number of people with high or low drug consumption.
+```{r 1}
+p1 <- ggplot(data=druguse, aes(x=country, fill=UseLevel))+geom_bar()+
+  ggtitle(label = "UseLevel of Drug Users across Different Countries")+labs(caption ="Figure 1")
+print(p1)
+```
+
+We saw that in general, Australia, Canada, other countries and the USA has quite a large portion of people that has high level of illegal drugs consumption.
+
+#### **(ii)**
+A plot of similar style is generated but with gender on the x-axis.
+```{r 2}
+p2 <- ggplot(data=druguse, aes(x=gender, fill=UseLevel))+geom_bar()+
+  ggtitle(label = "UseLevel of Drug Users for Different Genders")+labs(caption ="Figure 2")
+print(p2)
+```
+
+In general larger portion of males has a higher level of illegal drug consumption.
+
+### 1.2
+#### **(i)**
+Note that the following plots are a few selected plots I that generated, it is not all the data that I have explored.
+
+**Plot 1 and 2**
+
+The following plot illistrate the combination of personality traits together with the individual respective drug consumption level. 
+```{r 3}
+p19 <- ggplot(data=druguse, aes(x=opentoexperience, y=conscientiousness, col=UseLevel))+geom_jitter()+geom_abline(linetype = "twodash",slope=1,intercept=0)+
+labs(caption ="Figure 3")+
+  ggtitle(label = "UseLevel for 'conscientiousness' vs 'opentoexperience'")
+
+p22 <- ggplot(data=druguse, aes(x=sensation, y=extraversion, col=UseLevel))+geom_jitter()+geom_abline(linetype = "twodash",slope=2,intercept=-0.5)+
+labs(caption ="Figure 4")+
+  ggtitle(label = "UseLevel for 'extraversion' vs 'sensation'")
+
+grid.arrange(p19, p22, nrow=2)
+```
+
+These graphs have shown respectively, a person with the following combination of personality traits - low "conscientiousness" and "high open to experience", low "extraversion" and high "sensation", are more likely to be high level drug users. A line is added to show more clearly such pattern. 
+
+**Plot 3**
+
+The following plot is a boxplot with ethnicity on the x-axis and education on the y-axis with each ethinic group separted into 2 boxplot corresponding to high and low UseLevel.
+```{r 4}
+p15 <- ggplot(data=druguse, aes(x=ethnicity, y=education, fill=UseLevel))+
+  theme(text = element_text(size=10), axis.text.x = element_text(angle=25, hjust=1))+
+  geom_boxplot()+
+  labs(caption ="Figure 5")+
+  ggtitle(label = "Education Level for High and Low Level Drug Users across Ethicities")
+print(p15)
+```
+
+Indeed across all ethinicities, we saw that, higher illegal drug consumption corresponds to on average lower level of education. However it is also worth noting that the sample size has a large white biases, and there are not much samples for other ethnic groups. The boxplot corresponding to high level of illict drug consumption for the black ethnicity clearly shows that there are an insufficient number of samples for that particular results. Hence there are still high level of uncertainly for this pattern observed.
+
+#### **(ii)**
+
+**Plot 4 and 5**
+
+Note in the following plot I have treated the consumption of legal substances as categorical variables instead. It is reasonable to do so as these level corresponse to highly different degree of consumption from never used(0), used over a decade ago (1), ..., to used in last day(6). 
+
+The following boxplot shows the relationship between **nicotine** consumption and severity of **illegal drugs** consumption. Notice at each **legal substance** consumption level, the red and blue boxplot corresponse to the severity of **illegal drug** consumption for females and males respectively.
+```{r 5}
+druguse$f_nicotine <- as.factor(druguse$nicotine)
+p9 <- ggplot(data=druguse)+geom_boxplot(aes(x=f_nicotine, y=severity, fill=gender))+
+labs(caption ="Figure 6")+
+  ggtitle(label = "Severity of Illegal Drug Consumption at each \n level of Nicotine consumption for both Gender")+ theme(plot.title = element_text(size=10))
+druguse$f_caffeine <- as.factor(druguse$caffeine)
+p10 <- ggplot(data=druguse)+geom_boxplot(aes(x=f_caffeine, y=severity, fill=gender))+
+labs(caption ="Figure 7")+
+  ggtitle(label = "Severity of Illegal Drug Consumption at each \n level of Caffeine consumption for both Gender")+ theme(plot.title = element_text(size=10))
+
+grid.arrange(p9,p10,nrow=1)
+```
+
+It is worth noting that at almost all consumption levels of legal substances, males on average have a higher severity of illegal drugs consumptions.
+It can also be observed that there seems to show a positive correlation between severity of illegal drug consumption and nicotine consumption. We see that the higher the nicotine consumption, the higher up are the "masses" of the boxplot for both gender, which indicates a higher average illegal drug consumption severity for those groups of individuals. This trend is weaker for caffeine consumption, which shows only extreme samples of people (points on the end of the box) that are exhibiting such characteristics.
+
+**Plot 6**
+
+The following plot investigate the relation between demographics and severity of illegal drug consumption.
+```{r 6}
+p17 <- ggplot(data=druguse, aes(x=cannabis, y=severity, col=country))+geom_jitter()+
+  theme(text = element_text(size=9), axis.text.x = element_text(angle=15, hjust=1))+
+  ggtitle(label = "Severity and Cannabis Consumption, colored by countries")+
+  labs(caption ="Figure 8")
+print(p17)
+```
+
+There are a few things to note about this graph. An interesting pattern to notice is the dispersion of individuals from USA and UK, we notice that there are a lot more individuals from UK than USA with low severity of illegal drug consumption, as quite a large portion of purple dots has low severity of consumption. However a more subtle point to make, is there are actually individuals that are low in illegal drug consumption severity, yet are at the higher end of cannabis consumption. i.e. there are quite a few individual that has severity below 20 but are on 4,5 or 6 in the scale of cannabis consumption. This might implies they only consume cannabis but not the other illegal drugs. This information is actually quite important as it motivates the idea of classifying drug user not only by severity but maybe by their preference in the types of illegal drugs to consume. It might also be the case that countries might possibly be *one* of the predictors that provide insights about the drug preference of an individual. This discussion will be furthered in question 4.
+
+## Question 2
+### 2.1
+Using logistic regression, I used the following code to build a classifier that predicts if an individual's substance use level will be 'high' or 'low' based on the predictors in the first 16 columns of the data.
+
+Note that I separated the full data into the training set and the test set by using only the first 1400 observation to build/train the model and leave the rest as a validation data set.
+
+```{r 7}
+# filter dataframe
+druguse_predictors <- druguse[, 1:16]
+# include the true values
+druguse_predictors$UseLevel <- druguse$UseLevel
+
+# separate data set into training and validation data set
+Log_train <- druguse_predictors[1:1400, ]
+Log_valid <- druguse_predictors[-(1:1400),]
+
+# build the logistic regression
+log_model <- glm(UseLevel ~., family=binomial(link='logit'),data=Log_train)
+summary(log_model)
+```
+We can inspect the trained logistic model by using the summary function from R.
+Note that the beta coefficient here are used to give the log-odds score. A higher log-odds score correspond to a higher probability that the individual's substance use level is 'high'. Hence given that nicotine correspond to the cofficient 0.4884 with the p-value of the wald-test less than 2^-16^. It implies this coefficient is significantly different to 0, indicating a positive corelations between level of illegal drug consumption and nicotine. As cigarette contains nicotine, smokers generally are individuals that consume high level of nicotine, which means smokers are more likely to have a high use level. On the contrarary, as chocolate has a negative coefficient it could be interpreted as chocolate eater are less likely to have a high level of illegal drug consumption. Additionally, with high p-value for this coefficient in the wald-test, it implies we cannot be certain if the coefficient is significantly different from 0. So chocolate consumption level might in reality not related to level of illegal drug consumption.
+
+### 2.2
+In the following I make prediction using the logistic regression model on the validation data. The prediction is done by classifying the individual as 'high' when the proability of outcome is larger than 0.5 and 'low' otherwise.
+
+The following code plots the confusion table of the prediction.
+```{r 8}
+pre_prob <- predict(log_model, Log_valid[,1:16], type="response")
+my_predict <- as.numeric(pre_prob>0.5)
+table(my_predict,Log_valid$UseLevel)
+```
+This model made 417 correct prediction out of 485 prediction, it is also worth to note that the True positive rate (sensitivity) and True negative rate (specificity), of the prediction is also quite high, 86% for both rates. This means the model works equally good in *identifying* the low drug consumption individual and high drug consumption individuals.
+
+### 2.3
+The accuracy of this model is 86.0%. The following code constructs the ROC analysis to examine the quality of the classifier.
+```{r 9}
+# to explicitly know that I am associating a prediction high drug consumption as 1, I converted the UseLevel series to 1's and 0's with high = 1, low = 0
+tr_vals <- as.numeric(Log_valid$UseLevel=="high")
+pr <- prediction(pre_prob,tr_vals)
+# calculate false positive rate and true postive rate for different classification threshold
+prf <- performance(pr, measure = "tpr", x.measure ="fpr")
+plot(prf, main = "ROC Curve for Logistic Regression Model", sub="Figure 9")
+abline(0,1) # this line represent a useless.
+```
+
+The ROC Curve have in its x-axis the false positive rate, which is the rate which false ('low') value are predicted as true, while the y-axis, true positive rate, is the rate which true ('high') value are predicted as true. 
+
+Hence one could imagine in an ideal perfect model, we would have the false positive rate = 0 and true positive rate = 1 (i.e. classifying all false subject as false and classifying all true subject as true). Hence the ROC curve of a perfect model will be two straight line going from points (0,0) to (0,1) and (0,1) to (1,1). And the closer a ROC curve is to this perfect ROC curve the better the model should be.
+
+This motivates the idea of evaluating the model by looking at the area under curve value of the ROC curve. As the perfect model's ROC curve would have an AUC = 1, it means that the better the model, the closer its AUC of the ROC curve would be to 1.
+
+Therefore, the following we calculate the AUC of the ROC curve of our model.
+
+```{r 10}
+# calculate AUC
+AUC <- performance(pr, measure = "auc")
+AUC <- AUC@y.values[[1]]
+print(AUC)
+```
+The AUC of our ROC curve is 0.9269, which is quite close to 1. This shows the model is indeed quite good at classifying the individuals to 'high', 'low' level of illegal drug consumption.
+
+### 2.4
+The following code uses K-fold cross validation with K=10 to estimate the accuracy of the model when it is used to predict a new data set. Notice that I have deliberately specified a cost function used in the cross-validation function as in a classification problem one should calculate the error by number of wrong prediction divided by number of total predictions, instead of the default cost function of the cross-validation function - sum of squares error.
+```{r 11}
+log_model.glm <- glm(UseLevel ~., family=binomial(link='logit'), data = druguse_predictors)
+cost <- function(r, pi = 0) mean(abs(r-pi) > 0.5)
+cv.err <- cv.glm(druguse_predictors, log_model.glm, cost= cost, K=10)$delta[1] # the first value is the raw cross validation error
+print(cv.err)
+# hence calculate prediction accuracy.
+print(1-cv.err)
+```
+The cross validation error is 0.143 meaning the prediction accuracy for a new data set for the model would be 85.9%. This is slightly lower than the accuracy of prediction on validation data set.
+
+K-fold cross-validation error is effective in estimating the prediction accuracy of the model on new data sets as the algorithm of the K-fold cross-validation is essentially spliting the data randomly into k equal folds(sets) and training the model k times, each times leaving out a set of data to act as validation data set. This way of training the model emulates the situation when the model is apply on a new dataset. Hence by averaging the prediction error from the K validations, it would give a reasonable estimate to the prediction error and hence the prediction accuracy of the model when new data set is used.
+
+## Question 3
+### **3.1**
+For such binary classification problems, K-nearest neighbours (KNN) might be a good method to use. 
+I will be using predictors from the first sixteen column, however to be able to use KNN, data that is used needs to be numerical as each data points are represented as a coordinates in a multidimensional space. There are a few types of categorical data that needs to be converted to numerical data with different approaches. Binary categorical variable are the easier kind to convert to numerical data, as one have to simply replace the binary category by 1's and 0's. The following code carries out such conversion on the gender predictor variable.
+
+```{r 12}
+# initiallize a data frame that will contains the data for the right predictors
+knn_data <- c(druguse[,1:16])
+# convert gender to numeric, initially the factor "2" corresponse to "female" and 1 to "male", I minus these values by 1 to make 1 corresponse to female and 0 conresponse to male
+knn_data$gender <- as.numeric(knn_data$gender)-1
+```
+
+The second kind of categorical variable are multi-category but with a notion of "order between categories", these would include categorical variables like agegroup, where we can convert these variables by replacing these ordered categories to an ordered sequence of number. Specifically for age group in the data set which has 6 levels in total. In the following code I replace all six levels by the sequence 1,2,3,4,5,6 with 1 coresponding to age 18-24 and 6 coresponding to age 65+.
+
+```{r 13}
+knn_data$agegroup <- as.numeric(knn_data$agegroup)
+```
+
+The final kind of categorical variable in the dataset are the more tricky ones to convert. These categories do not have a notion of "order" in them, hence it is not reasonable to simply replace the categories to a discrete sequence of numerical numbers. I instead split each categories into indicator variables. In other words, to convert a categorical predictor with n categories into a numerical variable, one have to construct n-1 indicator variables so each of them will be composed of 1's and 0's which indicates if the individual belongs to the category. Only n-1 indicator variable will be needed as these categories are mutually exclusive, hence n-1 indicator variable are sufficient to fully specify which categories each individual belongs for that predictor. The following code I uses the function to.dummy in the **dummies** library to build these indicator variables, where I simply feed the categorical variable into the function and it would output the respective indicator variables.
+
+```{r 14}
+# construct indicator variables from non-ordered multi-categorical predictors
+countries <- data.frame(to.dummy(knn_data$country, prefix = "country"))
+ethnicities <- data.frame(to.dummy(knn_data$ethnicity, prefix = "ethnicity"))
+
+# inspects these indicator variable for country
+str(countries)
+str(ethnicities)
+
+# add these data to the data and remove the categorical data
+knn_data <- cbind(knn_data,countries,ethnicities)
+```
+Remove indicator variable that are redundant
+```{r 15}
+# remove one indicator variable as it is redundant
+knn_data$ethnicity.Mixed.Black.Asian <- NULL
+knn_data$country.Australia <- NULL
+knn_data$country <- NULL
+knn_data$ethnicity <- NULL
+
+# reorder the data so the first 12 columns are the original numerical data
+knn_data <- cbind(knn_data[,-c(1:2)],knn_data[,c(1:2)])
+```
+Now lets inspect that we only have numerical data in knn_data
+```{r 16}
+str(knn_data)
+```
+
+Indeed all data format are now numerical.
+
+As a key part of knn is to use distance to determine the "k-nearest" neighbours, to reduce the biased introduced to certain predictors due to their units and scale such as a predictor dominating other predictors as it is using units of higher order of magnitude - the data should be normalize (by mean and standard deviation) before applying knn.
+
+Before doing any scaling/transformation to the data, one should be aware that we should split the dataset into training and testing set and apply the normalization only the training set. We shall apply the **same transformation** to the test set by transforming the test set with the **same standard deviation and mean obtained when normalizing the training data set**. Notice, we are using the training set to determine the transformation that is applied to the test set. This will ensure that we are applying the **same transformation** to both sets of data while only letting the transformation be determined by the training data. This prevent introducing biased to the validation of the model. 
+
+Here we split the data into training and testing data set. Remember we also need the outcomes.
+```{r 17}
+knn_data_master <- cbind(knn_data,druguse$UseLevel)
+
+knn_train <- knn_data_master[1:1400, ]
+knn_test <- knn_data_master[-(1:1400),]
+```
+Then we can normalize the training data and apply the same **transformation** to the test set. Here I wrote a function that carry out this procedure. The function takes in its argument the training set and test set and output the scaled test set.
+
+```{r 18}
+knn_scaling <- function(training_set, test_set){
+  col_no <- ncol(training_set)
+  # preallocate get a data_frame of corresponding dimension
+  
+  means <- apply(training_set, 2, mean)
+  sd_s <- apply(training_set, 2, sd)
+  
+  # applying the same transformation
+  scaled_test_set <- scale(test_set, center = means, scale = sd_s)
+  return(scaled_test_set)
+}
+```
+
+```{r 19}
+# preallocate a dataframe of such size
+knn_train_scaled <- knn_train[,1:26]
+knn_test_scaled <- knn_test[,1:26]
+
+knn_train_scaled[,1:26] <- scale(knn_train[,1:26], center=TRUE, scale= TRUE)
+knn_test_scaled[,1:26] <- knn_scaling(knn_train[,1:26],knn_test[,1:26])
+```
+
+We can now apply knn on the data. We will try k = 10 first then optimize it through cross validation in the next step.
+
+```{r 20}
+set.seed(123)
+
+knn_prediction <- knn(knn_train_scaled[,1:26], knn_test_scaled[,1:26],knn_train[,27],k=10)
+
+# check its accuracy as a reference
+accuracy <- sum(knn_prediction == knn_test[,27])/485
+print(accuracy)
+```
+
+81% accuracy is a quite a satisfactory performance considering we have not optimized k.
+
+Now we can use cross validation to optimize k. The following is a script that runs 10-folds cross-validation. Note that validation on each fold will involve normalizing the data on the training set then applying the same transformation to the test set before using the knn prediction.
+The cross validation error calculated for each k is than plotted as below.
+```{r 21}
+set.seed(123)
+kfolds <- 10
+cross_validation_errors <- rep(1,150)
+for (knearest in 1:150){
+  no_of_data <- nrow(knn_data)
+  index <- sample(1:no_of_data, size=no_of_data)
+  k_cvd_er = 0*(1:kfolds) # initialise
+  for (i in 1:kfolds) { 
+    # get a portion as test index
+    thisindex <- index[floor((i-1)/kfolds*no_of_data+1):floor(i/kfolds*no_of_data)]
+    # get current test and training set and preparing the inputs for the knn function
+    thistrain <- knn_data[-thisindex, ]
+    thistrain_truth <- knn_data_master[-thisindex,27]
+    thistest <- knn_data[thisindex, ]
+    thistest_truth <- knn_data_master[thisindex,27]
+    
+    # scale data
+    this_train_scaled <- scale(thistrain[,1:26], center=TRUE, scale= TRUE)
+    this_test_scaled <- knn_scaling(thistrain[,1:26],thistest[,1:26])
+    
+    # if sample are small and entries of certain predictors are zero, then just leave them as zero.
+    this_train_scaled[is.na(this_train_scaled)] <- 0
+    this_test_scaled[is.na(this_test_scaled)] <- 0
+    
+    knn_predict<- knn(this_train_scaled[,1:26],this_test_scaled[,1:26],thistrain_truth,knearest)
+    # calculate prediction error
+    k_cvd_er[i]=sum(knn_predict != thistest_truth)/nrow(thistest)
+  }
+  
+  cross_validation_errors[knearest] <- mean(k_cvd_er)
+}
+
+plot(1:150,cross_validation_errors, main = "10-Fold Cross-Validation Error with different K", sub="Figure 10")
+```
+
+The graph shows that the optimal k to apply KNN on would be k=94 and the opimized 10-fold cross validation accuracy would be 
+```{r 22}
+1-min(cross_validation_errors) # calculates optimal cross-validation accuracy
+```
+This means in face of new data set, 84% is the estimated accuracy that this KNN could predict.
+
+
+Now we run our knn with k=94 and calculates its accuracy.
+```{r 23}
+set.seed(123)
+
+knn_prediction <- knn(knn_train_scaled[,1:26], knn_test_scaled[,1:26],knn_train[,27],k=94)
+
+# check its accuracy as a reference
+accuracy <- sum(knn_prediction == knn_test[,27])/485
+print(accuracy)
+```
+It gave and accuracy of 84% which indeed is an improvement.
+
+There is an extra step to take to perhaps make the method more robust. With the current "setup", (i.e. the training data and the methodology), we might run into the risk of overfitting as we are using so much predictors (26 predictors) for our prediction, especially if some predictors are actually irrelavent to the outcome. This means when given new training data, perhaps with abnomalies, performance of the algorithm would be heavily affected. 
+
+More specifically, high dimensionality is also a concern for knn as using a lot of predictors will mean we are resolving the k-nearest neighbour problem in a high dimension space, which are relatively "large". This means the distance between points are relatively larger and the notion of near and far neighbours are less clear cut. Hence, we should seek for ways to reduce the dimensionality of the predictors before feeding the data into KNN. 
+
+A natural way in data science would be to use **Principle Component Analysis (PCA)**. The idea of PCA is to seek ways in generating linear combination of the predictors such that a smaller sets of linear combination would accounts for a larger portion of the variance of the original predictors.
+
+For example if two predictors are confounded then perhaps the PCA would suggest a linear combination or the two predictors to form a principle component, thereby reducing the dimensionality of the problem while "preserving"" the information given in each predictors.
+
+It would be more sensible to only apply PCA to the ordered categorical data and numerical data as applying PCA to the indicator categorical variable would implies that we shall seek linear combination of these mutually exclusive predictor as a principle componanant, which is a contradiction to the idea of PCA (as these indicator variables are impossible to be confound.).
+
+To get a sense of the number of principle component that we shall retain, we will test run this methodology by using the first 1400 row in the data set as observation to predict the outcome of the remaining data. 
+
+Similar to how we apply normalization to our data, we shall first apply PCA to the predictors of interest only with the training data, then use the transformation obtained to transform the test data.
+
+```{r 24}
+# reorder the data for convenient (the first 14 predictor would be used in PCA)
+pca_data_master <- cbind(knn_data_master[,c(1:12,25,26)],knn_data_master[,-c(1:12,25,26)])
+
+pca_train <- pca_data_master[1:1400, ]
+pca_test <- pca_data_master[-(1:1400),]
+
+# dataframe with only predictors and observation from training set
+pca_predictors <- pca_train[,1:14]
+predictors.pca <- prcomp(pca_predictors, center = TRUE,scale. = TRUE)
+
+summary(predictors.pca)
+```
+
+Looking at the summary of the PCA carried out, the first 4 priciple components account for half of the variance while the first 9 components account for 80% of the variance. As a start, it seems sensible to only take the first 4 components to feed into KNN.
+
+We first project the test data onto this space by the following.
+```{r 25}
+scaled_test <- scale(pca_test[,1:14], center=predictors.pca$center)
+projected_test <- scaled_test %*% predictors.pca$rotation
+```
+Create a new data frame with projected test and training set and other predictors
+```{r 26}
+filtered_trained <- cbind(predictors.pca$x[,1:4], pca_train[,15:27])
+filtered_test <- cbind(projected_test[,1:4], pca_test[,15:27])
+
+str(filtered_trained)
+str(filtered_test)
+```
+
+Hence now we selected 16 predictors from 26 of them.
+
+Continuing with the KNN test just as above with scaling again..
+
+```{r 27}
+# define a dataframe for train and test for the corresponding dimension
+filtered_trained_scaled <- filtered_trained
+filtered_test_scaled <- filtered_test
+
+filtered_trained_scaled[,1:16] <- scale(filtered_trained[,1:16], center=TRUE, scale= TRUE)
+filtered_test_scaled[,1:16] <- knn_scaling(filtered_trained[,1:16],filtered_test[,1:16])
+```
+
+Finally, applying KNN to this set of data with k=94 as reference we have
+
+```{r 28}
+set.seed(126)
+
+knn_prediction_2 <- knn(filtered_trained_scaled[,1:16], filtered_test_scaled[,1:16],filtered_trained_scaled[,17],k=94)
+
+# calculate its accuracy
+accuracy_2 <- sum(knn_prediction_2 == filtered_test_scaled[,17])/485
+print(accuracy_2)
+```
+
+Without optimizing the k, we already observed that there are only a small drop in accuracy of this method, from 84% to 80%, but we have reduced the dimensionality of the problem by 10, in other words it might be the case that those 10 data points are to a degree correlated and hence taking linear combination of them would be sufficient to capture most information from the data. It seems like there is no need to introduce extra principle component as predictors.
+
+The next step is hence to evaluate this method by conducting 10-fold cross-validation on it, and find the optimal k for k-nearest neighbours by finding the k that gives the least 10-fold cross validation error.
+```{r 29}
+set.seed(125)
+
+kfolds <- 10
+cross_validation_errors <- rep(1,200)
+for (knearest in 1:200){
+  no_of_data <- nrow(pca_data_master)
+  index <- sample(1:no_of_data, size=no_of_data)
+  k_cvd_er = 0*(1:kfolds) # initialise
+  for (i in 1:kfolds) { 
+    # get a portion as test index
+    thisindex <- index[floor((i-1)/kfolds*no_of_data+1):floor(i/kfolds*no_of_data)]
+    # get current test and training set and preparing the inputs for the knn function
+    thistrain <- pca_data_master[-thisindex, ]
+    thistrain_truth <- pca_data_master[-thisindex,27]
+    thistest <- pca_data_master[thisindex, ]
+    thistest_truth <- pca_data_master[thisindex,27]
+    
+    # the added PCA procedure
+    this_pca_predictors <- thistrain[,1:14]
+    this_predictors.pca <- prcomp(this_pca_predictors, center = TRUE,scale. = TRUE)
+    
+    # project test data on to the trained principle component space
+    this_scaled_test <- scale(thistest[,1:14], center=this_predictors.pca$center)
+    this_projected_test <- this_scaled_test %*% this_predictors.pca$rotation
+    
+    this_filtered_trained <- cbind(this_predictors.pca$x[,1:4], thistrain[,15:27])
+    this_filtered_test <- cbind(this_projected_test[,1:4], thistest[,15:27])
+    
+    # scale data
+    this_train_scaled <- scale(this_filtered_trained[,1:16], center=TRUE, scale= TRUE)
+    this_test_scaled <- knn_scaling(this_filtered_trained[,1:16],this_filtered_test[,1:16])
+    
+    # if sample are small and entries of certain predictors are zero, then just leave them as zero.
+    this_train_scaled[is.na(this_train_scaled)] <- 0
+    this_test_scaled[is.na(this_test_scaled)] <- 0
+    
+    knn_predict<- knn(this_train_scaled[,1:16],this_test_scaled[,1:16],thistrain_truth,knearest)
+    # calculate prediction error
+    k_cvd_er[i]=sum(knn_predict != thistest_truth)/nrow(thistest)
+  }
+  
+  cross_validation_errors[knearest] <- mean(k_cvd_er)
+}
+```
+The following plots the graph k against the corresponding 10-fold cross-validation error.
+```{r 30}
+plot(1:200,cross_validation_errors, main = "10-Fold Cross-Validation Error with different K", sub="Figure 11")
+```
+
+The optimal k is hence
+```{r 31}
+which(cross_validation_errors == min(cross_validation_errors))
+```
+
+The cross validation error for this method is
+```{r 32}
+1-min(cross_validation_errors) # calculates optimal cross-validation accuracy
+```
+
+which is only a only a small decrease in accuracy as oppose to 84% obtained in the 10-fold cross validation error for the method without PCA.
+
+### **3.2**
+
+Refering to the question of the estimated accuracy when the method is applied on new data set, it would be 82%. 
+
+Finally, applying the KNN with k = 160 with the first 1400 observation as training data to predict the outcome of the rest, we have the following
+```{r 33}
+set.seed(126)
+
+knn_prediction_3 <- knn(filtered_trained_scaled[,1:16], filtered_test_scaled[,1:16],filtered_trained_scaled[,17],k=160)
+
+# calculate its accuracy
+accuracy_3 <- sum(knn_prediction_3 == filtered_test_scaled[,17])/485
+print(accuracy_3)
+```
+
+The prediction accuracy for KNN with no PCA is 82% for this set of training and testing data, while with the same set of train-test data we saw the method PCA into KNN resulted 80% accuracy. In gaining robustness to the method by reducing the predictors being used, we observed a drop in accuracy in prediction, this is an illustration of the variance-bias trade off in machine learning, where decreasing dimension of predictors correspond to a decrease in variance, while a decrease in accuracy correspond to an increase in biased. However in light of a relatively large reduction in predictors used in the second KNN method, it is sensible to say that this addition step gives a good variance-bias tradeoff.
+
+## Question 4
+### **4.1**
+In the following, using the first 16 columns of the data and the use of all other illicit drugs as predictors, the random forest algorithm would be used to predict if patients have ever used heroin. 
+
+First we will start by creating a data frame that contains all the data needed. 
+```{r 34}
+rforest_data <- druguse[,c(1:23,25:30)]
+```
+
+Then create a new column in our dataframe that contains the indicator variable on  whether a patient have consumed heroin before. The column will have variables 'YES' and 'NO'.
+
+```{r 35}
+rforest_data$heroin_use <- as.factor(c(druguse$heroin!=0))
+rforest_data$heroin_use <- revalue(rforest_data$heroin_use, c("TRUE"="yes","FALSE" ="no"))
+```
+
+Spliting the data in to test and training set.
+```{r 36}
+rforest_train <- rforest_data[1:1400,]
+rforest_test <- rforest_data[-(1:1400),]
+```
+
+Applying random forest to build the decision trees with the training data.
+```{r 37}
+set.seed(234)
+prediction_tree <- randomForest(heroin_use ~., data=rforest_train, importance=TRUE)
+```
+
+Hence obtain the prediction
+```{r 38}
+rforest_heroin_predict <- predict(prediction_tree,rforest_test[,1:29])
+```
+
+Inspect the result
+```{r 39}
+table(rforest_heroin_predict,rforest_test$heroin_use)
+accuracy4 <- sum(rforest_heroin_predict == rforest_test$heroin_use)/length(rforest_test$heroin_use)
+accuracy4
+```
+
+A 91% prediction accuracy is obtained by using random forest. Althrough the result might seems satisfactory, do notice that the false negative rate are 36/44 = 45%, i.e. the proportion of **heroin users** that are predicted to have never consumed heroin. This means the model are not very practical in identifying heroin users, but rather it should only be used to rule out the non-heroin usesrs. Hence this model would not be useful if one aims to narrow down groups of individual that are suspected to have used heroin for further testing as it will miss out nearly half of these individuals.
+
+### **4.2**
+Following up from the parts of the exploratory data analysis (EDA) conducted, from **Plot 6**, we found that apart from classifying patients purely into groups of 'high' and 'low' level of illegal drug consumption, it might be more informative and advantages for model prediction if one were to classify patients into groups according to their illegal drug consumption habits.
+
+To illustrate the idea of the different drug consumption habits, consider the graphs below. 
+```{r 40}
+p21 <- ggplot(data=druguse, aes(x=cannabis, y=severity, col=country))+geom_jitter()+
+  theme(text = element_text(size=7), axis.text.x = element_text(angle=15, hjust=1))+
+  ggtitle(label = "Severity and Cannabis Consumption")+
+  labs(caption ="Figure 8")+
+  geom_rect(mapping = aes(xmin=3, xmax=6.5,ymin=5,ymax=20), alpha=0.1,color="black", fill=NaN)
+
+p18 <- ggplot(data=druguse, aes(x=heroin, y=severity, col=country))+geom_jitter()+
+  theme(text = element_text(size=7), axis.text.x = element_text(angle=15, hjust=1))+
+  ggtitle(label = "Severity and Heroin Consumption")+
+  labs(caption ="Figure 12")
+
+p19 <- ggplot(data=druguse, aes(x=crack, y=severity, col=country))+geom_jitter()+
+  theme(text = element_text(size=7), axis.text.x = element_text(angle=15, hjust=1))+
+  ggtitle(label = "Severity and Crack Consumption")+
+  labs(caption ="Figure 13")
+
+p20 <- ggplot(data=druguse, aes(x=heroin, y=crack, col=UseLevel))+geom_jitter()+
+  theme(text = element_text(size=7), axis.text.x = element_text(angle=15, hjust=1))+
+  ggtitle(label = "Crack consumption and Heroin Consumption")+labs(caption ="Figure 14")+
+  geom_rect(mapping = aes(xmin=0, xmax=2,ymin=4,ymax=6), alpha=0.1,color="black", fill=NaN)
+
+grid.arrange(p21,p18,p19,p20, nrow =2)
+```
+
+Following from the explanation in **Plot 6** question 1, we saw that quite a number of people has low severity of illegal drug consumption yet consume high level of cannabis (indicated by the points in the box of Figure 8). This is not true for some other illegal drugs including Crack and Heroin. High comsumption of Crack or Heroin responded to high severity of illegal drug use (figure 12 and 13). When plotting the consumption of crack and heroin on a jitter plot, there emerges some intersting information like individual with low consumption of heroin will also not have high consumption in crack. This is shown by the box in the bottom left plot. 
+
+Hence it might be possible to classify patients to these consumption behaviour. 
+
+To further investigate if there are different types of consumption behaviour, k-means clustering would be a sensible method to use for such purpose. The idea of this algorithm is to look for clustering in the sample space by finding centroids in the space that minimizes the distance of the data points "near" the centroids, thereby identifying those points "near" a centroids to be clusters.
+
+A key parameter to identify is the number of clusters/centroids we hope to have. Before the algorithm search for the optimal centroids. 
+
+We use the "elbow method" in determining the optimal k. This method works by trying the k-means clustering algorithm on different values of k and find its "within-cluster sum-of-square (WCSS)" which corresponds to how "far" away the points are from its respective/closest centroids. Doing this, we would identify the marginal improvement/decrease in WCSS when an extra centroid is added. 
+
+The idea is we should stop increasing the value of k if the marginal improvement/decrease in WCSS is not "significant".
+
+The following function will automatically generate the plot for the elbow method. Note that we are only considering possible clusters in illegal drug consumption.
+
+```{r 41}
+# extract he relavent data.
+druguses <- druguse[,17:30]
+
+fviz_nbclust(druguses, kmeans, method = "wss")+
+  geom_vline(xintercept = 4, linetype = 2)+
+  labs(subtitle = "Elbow method", caption ="Figure 15")
+```
+
+This plot gave us an intuitive decision that the optimal number of means clusters would probably be around 3 or 4.
+
+Using k = 3 and 4, conduct k-means clustering
+```{r 42}
+set.seed(84)
+clusters_3 <- kmeans(druguses, 3, iter.max=30)
+
+set.seed(84)
+clusters_4 <- kmeans(druguses, 4, iter.max=30)
+```
+
+As the clusters are of really high dimension, it would be quite hard to visualize the clusters through plotting the clusters in the higher dimension space. The simpliest way to get a sense of the clustering would be to plot the values of the centroids found, as the "coordinates"" of the centroids corresponds to the mean consumption level for each drug type.
+
+Hence we arrive with the following plot
+```{r 43}
+# calculate mean consumption
+mean_consumption <- colMeans(druguses)
+drugs <- colnames(druguses)
+
+# coordinates of centroids is stored in clusters$center
+p21 <- ggplot()+
+  geom_boxplot(aes(x=drugs,y=clusters_3$centers[1,]),col="black")+
+  geom_boxplot(aes(x=drugs,y=clusters_3$centers[2,]),col="red")+
+  geom_boxplot(aes(x=drugs,y=clusters_3$centers[3,]),col="green")+
+  geom_point(aes(x=drugs,y=mean_consumption),col="cyan")+
+  theme(text = element_text(size=10), axis.text.x = element_text(angle=25, hjust=1))+
+  ggtitle(label = "Means illegal drug consumption in 3-means Clusters")+
+  ylab(label = "Consumption Level")+
+  labs(caption ="Figure 15")
+
+print(p21)
+```
+
+Note that the cyan colour dots correspond to the overall average consumption of each drug to give a reference to how more or less each cluster group are actually consuming the drug relative to the mean consumption. 
+
+At first glace on figure 14, the 3-means Clusters" gives quite a clear classification of drug users. Indeed, we have the red bar corresponding to people that does not really consume any illegal drugs and the green bar for "drug addicts" with on average the highest consumption level across all drugs except cannabis. More interestingly, we also have the the black bar that corresponse to people that consume mostly cannabis. Having 3 classification group not only allows one to classify individuals that consume high or low level of illegal drugs but also identify the group that mainly consume cannabis. This aligns with the information given on figure 8, where there are group of individual with low severity of consumption yet having high level of cannabis consumption. 
+
+We shall also explore perhaps other more subtle illegal drug consumption behaviour by looking at the same kind of result from 4-means clustering.
+
+```{r 44}
+p22 <- ggplot()+
+  geom_boxplot(aes(x=drugs,y=clusters_4$centers[1,]),col="black")+
+  geom_boxplot(aes(x=drugs,y=clusters_4$centers[2,]),col="red")+
+  geom_boxplot(aes(x=drugs,y=clusters_4$centers[3,]),col="green")+
+  geom_boxplot(aes(x=drugs,y=clusters_4$centers[4,]),col="blue")+
+  geom_point(aes(x=drugs,y=mean_consumption),col="cyan")+
+  theme(text = element_text(size=10), axis.text.x = element_text(angle=25, hjust=1))+
+  ggtitle(label = "Means illegal drug consumption in 4-means Clusters")+
+  ylab(label = "Consumption Level")+
+  labs(caption ="Figure 16")
+
+print(p22)
+```
+
+It seems that this 4 groups classification might be worthwhile as it preserves the features from the 3-means clustering. Here, while we still see the red and black group correspond to the same groups from the 3-means clustering, added information is given about the consumption behaviour of the "drug addicts" group (green) in the 3 groups classifications.
+
+We can observed two slightly different consumption preference for these two groups. To name a few drugs preference, the blue groups seems to prefer more on ecstasy, legalhighs, LSD and mushrooms, while the green group clearly have relatively higher preference over methadone, crack and heroins. 
+
+Hence to see if such added classification does gives extra interpretable information, we create 3 identical scatter plot of the consumption of crack verse heroin, then we colour the points on the plot according to their classfication. Therefore potentially observing how additional insights are introduced comparing to the binary classification technique that was used. Note that this plot is essentially like projecting the data set on the the "crack-heroin consumption level plane", which is one way of visualizing the clusters.
+
+```{r 45}
+p23 <- ggplot(data=druguse, aes(x=heroin, y=crack, col=as.factor(clusters_3$cluster)))+geom_jitter()+
+  theme(text = element_text(size=9), axis.text.x = element_text(angle=15, hjust=1))+
+  ggtitle(label = "Crack and Heroin Consumption with 3 clusters")+labs(caption ="Figure 17")+
+  theme(legend.title=element_blank())
+
+p24 <- ggplot(data=druguse, aes(x=heroin, y=crack, col=as.factor(clusters_4$cluster)))+geom_jitter()+
+  theme(text = element_text(size=9), axis.text.x = element_text(angle=15, hjust=1))+
+  ggtitle(label = "Crack and Heroin Consumption with 4 clusters")+labs(caption ="Figure 18")+
+  theme(legend.title=element_blank())
+
+grid.arrange(p20,p23,p24,
+  widths = c(1.5, 2.5),
+  heights =  c(1.7,1.7),
+  layout_matrix = rbind(c(1, 3),
+                        c(2, 3)))
+```
+
+The above plot shows the extra information we obtained by adding one or more classifications. Note that if only the "low-high" classification is used, we would be missing out other information in the high groups where it was further meangingfully separated to red and blue group in the 3-means classification and red, purple, blue group in the 4-mean classification group. 
+
+While comparing the 3 and 4 groups classification, we do see that the 4 groups classification does provides more information about the blue group in the 3 groups classification. 
+
+We see that the purple dots on figure 18 (4 clusters) correspond to individuals that prefer the other types of illegal drugs, while the blue dots would correspond to people that mainly prefer heroin and crack. We would miss out on these information if we only consider the 3 groups classification. 
+
+As the aim is set out to investigate if individuals can be grouped into a more refined class according to their consumption behaviour, it shall be reasonable to proceed investigation with 4 groups classification as we are able to identify drug consumption behaviour associated with each clusters. Additionally, from elbow method carried out, it is found that adding more clusters, would yield less marginal drop in the within-cluster sum of squares, hence it would be less reasonable to pursue on higher value of k-means clustering. We will proceed now instead to see if we could build predictive models to classify individuals to these classes.
+
+It is also important to acknowledge that the results of the clustering are slightly different each time as the clustering algorithm uses randomization to initially decide the centroids of the clusters. As there might be local minimum in the optimization function, this leads to slightly different results.
+
+#### **Model Prediction from this Characterization**
+
+The motivation here is that experienced professionals like doctors might be able to establish such classification instead and hence predictive models could be trained to classify individuals through this way, meanings the added benefit would be that the models could give more insights and information through its predictions.
+
+Hence the natural following step would be devise a model to classify individuals according to the new classification. Given that this is a mult-class classification problem. The most appropriate method to use would be random forrest and KNN. However, I would be less inclined to use KNN as the problem involves quite a high numbers of predictors and KNN generally fall short in high dimensional classification problems.
+
+It is also important to note that this method of classification only uses illicit drug consumption data, but not the other demographics and personality scores, so taking columns other than those from illicit drug consumption as predictors shall not introduce bias to the prediction.
+
+An interesting area to look at would be to only use the personalities of an individual as predictors. It seems to reasonable to suspect some relations between personality and personal preference on drug consumption.
+
+The following is the code used to carry out the test. For reference, we will again try to use the first 1400 observation of personality score to predict the outcome of the rest.
+
+Note that the classification vectors are converted to categorial variables in R and the categories are renamed to "Low", "can", 'ad_1' and 'ad_2'. These correspond respectively to individuals that do not really do drugs, mostly consume cannabis, highly prefer methadone, crack, heroin and prefer more on ecstasy, legalhighs, LSD and mushrooms.
+```{r 46}
+# collect relavent predictors together with the classifications
+rforest_data2 <- druguse[,c(6:12)]
+# include classifications into data set
+
+rforest_data2$druggroups <- as.factor(clusters_4$cluster)
+rforest_data2$druggroups <- revalue(rforest_data2$druggroups, c('1'="Low", '2'="can", '3'='ad_1', '4'='ad_2'))
+
+# test - train split
+rforest_train2 <- rforest_data2[1:1400,]
+rforest_test2 <- rforest_data2[-(1:1400),]
+
+set.seed(123)
+# impletmenting random forest
+prediction_tree2 <- randomForest(druggroups ~., data=rforest_train2, importance=TRUE)
+druggroups_predict2 <- predict(prediction_tree2,rforest_test2[,1:7])
+
+table(druggroups_predict2,rforest_test2$druggroups)
+accuracy5 <- sum(druggroups_predict2 == rforest_test2$druggroups)/length(druggroups_predict2)
+print(accuracy5)
+```
+
+As shown, the model did not perform quite well, with only an accuracy of 52%. However note that this results is not really compatible to other methods as the set predictors included was different. We can also observe that personality might not be the only factor that affects an individuals preference of drugs. 
+
+Interestingly the model found some success is classifying the cannabis group, this might suggest a consumption of cannabis have a higher association to personalities of the individual compare to other drugs. 
+
+It also suggest we shall increase more predictors to train the model. Similar predictors that are associated to personal preferences are the consumption level of legal substances. Hence we reconstruct our random forrest model adding these predictors in.
+
+```{r 47}
+# collect relavent predictors together with the classifications
+rforest_data3 <- druguse[,c(6:16)]
+# include classifications into data set
+
+rforest_data3$druggroups <- as.factor(clusters_4$cluster)
+rforest_data3$druggroups <- revalue(rforest_data3$druggroups, c('1'="Low", '2'="can", '3'='ad_1', '4'='ad_2'))
+
+# test - train split
+rforest_train3 <- rforest_data3[1:1400,]
+rforest_test3 <- rforest_data3[-(1:1400),]
+
+set.seed(123)
+# impletmenting randomforest
+prediction_tree3 <- randomForest(druggroups ~., data=rforest_train3, importance=TRUE)
+druggroups_predict3 <- predict(prediction_tree3,rforest_test3[,1:11])
+
+table(druggroups_predict3,rforest_test3$druggroups)
+accuracy6 <- sum(druggroups_predict3 == rforest_test3$druggroups)/length(druggroups_predict3)
+print(accuracy6)
+```
+
+There is indeed an improvement in performance of the model with 58% accucary. However the model is not performing really well in classifying the categories other than the 'can'.
+
+We will now include the rest of the avaliable predictors into the model as well and see how the performance changes. 
+
+```{r 48}
+# collect relavent predictors together with the classifications
+rforest_data4 <- druguse[,c(1:16)]
+# include classifications into data set
+
+rforest_data4$druggroups <- as.factor(clusters_4$cluster)
+rforest_data4$druggroups <- revalue(rforest_data4$druggroups, c('1'="Low", '2'="can", '3'='ad_1', '4'='ad_2'))
+
+# test - train split
+rforest_train4 <- rforest_data4[1:1400,]
+rforest_test4 <- rforest_data4[-(1:1400),]
+
+set.seed(123)
+# impletmenting randomforest
+prediction_tree4 <- randomForest(druggroups ~., data=rforest_train4, importance=TRUE)
+druggroups_predict4 <- predict(prediction_tree4,rforest_test4[,1:16])
+
+table(druggroups_predict4,rforest_test4$druggroups)
+accuracy7 <- sum(druggroups_predict4 == rforest_test4$druggroups)/length(druggroups_predict4)
+print(accuracy7)
+```
+
+After including all avaliable predictors to train the model, the accuracy of the RandomForest prediction are about 64%. We can see that although the model perform quite well in identifying the cannabis group, there is quite a few misclassification for the ad_1, ad_2 groups and the low groups. The next step would be to perform 10-fold cross validation on the model and calcuate the cross-validation accuracy.
+
+```{r 49}
+kfolds <- 10
+no_of_data <- nrow(rforest_data4)
+set.seed(1231)
+index <- sample(1:no_of_data, size=no_of_data)
+k_cvd_er = 0*(1:kfolds) # initialise
+for (i in 1:kfolds) { 
+  # get a portion as test index
+  thisindex <- index[floor((i-1)/kfolds*no_of_data+1):floor(i/kfolds*no_of_data)]
+  thistrain <- rforest_data4[-thisindex,]
+  thistest <- rforest_data4[thisindex, 1:16]
+  thistest_truth <- rforest_data4[thisindex, 17]
+  this_prediction_tree <- randomForest(druggroups ~., data=thistrain, importance=TRUE)
+  this_predict <- predict(this_prediction_tree,thistest)
+  k_cvd_er[i]=sum(this_predict != thistest_truth)/nrow(thistest)
+  }
+
+1-mean(k_cvd_er)
+```
+
+The cross validation accuracy is 60%, which suggest that if the model is introduced to new data, its estimately accuracy would be 60%.
+
+Although we have shown that it is highly likely that drug users could be classified further by their drug consumption preference, creating model to predict these classification are a much harder problem. Especially for classifying the ad_1 and ad_2 group. 
+
+Taking a comprismised approach, we resort back to using the 3 group classification instead to see if by reducing the insights that we could get from a prediction, more accurate results could be generated.
+
+```{r 50}
+# collect relavent predictors together with the classifications
+rforest_data5 <- druguse[,c(1:16)]
+# include classifications into data set
+
+rforest_data5$druggroups <- as.factor(clusters_3$cluster)
+rforest_data5$druggroups <- revalue(rforest_data5$druggroups, c('1'="low", '2'="can", '3'='high'))
+
+# test - train split
+rforest_train5 <- rforest_data5[1:1400,]
+rforest_test5 <- rforest_data5[-(1:1400),]
+
+set.seed(123)
+# impletmenting randomforest
+prediction_tree5 <- randomForest(druggroups ~., data=rforest_train5, importance=TRUE)
+druggroups_predict5 <- predict(prediction_tree5,rforest_test5[,1:16])
+
+table(druggroups_predict5,rforest_test5$druggroups)
+accuracy7 <- sum(druggroups_predict5 == rforest_test5$druggroups)/length(druggroups_predict5)
+print(accuracy7)
+```
+
+The performance of the model is much better at 73% compared to the 64% in the 4 groups classification problem. The classfication error of the 'high' group still seems to be quite high. In using this classification of drug use for individuals, we not only are able to predict their level of illegal drug use but we are also able to identify partially their preference and habits in illicit drugs consumption, in particulutar the drug users that preferred consuming mainly high level of cannabis.
+
+To further validate the model, 10-fold cross validation is carried out.
+
+```{r 51}
+kfolds <- 10
+no_of_data <- nrow(rforest_data5)
+set.seed(1231)
+index <- sample(1:no_of_data, size=no_of_data)
+k_cvd_er = 0*(1:kfolds) # initialise
+for (i in 1:kfolds) { 
+  # get a portion as test index
+  thisindex <- index[floor((i-1)/kfolds*no_of_data+1):floor(i/kfolds*no_of_data)]
+  thistrain <- rforest_data5[-thisindex,]
+  thistest <- rforest_data5[thisindex, 1:16]
+  thistest_truth <- rforest_data5[thisindex, 17]
+  this_prediction_tree <- randomForest(druggroups ~., data=thistrain, importance=TRUE)
+  this_predict <- predict(this_prediction_tree,thistest)
+  k_cvd_er[i]=sum(this_predict != thistest_truth)/nrow(thistest)
+  }
+1- mean(k_cvd_er)
+```
+
+A 71% cross-validation accuracy reflects that indeed performance of methods are better in this classification problem, compare to the 4 group classification. 
+
+In conclusion, considering the limitation in designing a model to tackle the 4 group classsification problem, it seems more benefitical at this stage to classify individuals to 3 types of drug consumption behaviour instead of 4, noting that impletmenting this classification approach would possibly face the trade off between potentially gaining more information from each prediction and a decrease in prediction accuracy as the complexity of such classification task are higher.
+
+## Question 5
+A natural extension question to ask would be which predictors seems most important in predicting substance use. However before evaluating each predictors, one have to acknowledge that the relavence of a predictor *in a model* is determined both by how the predictor is intrinsically related to the outcome and also the underlying sampling bias associated for each predictors.
+
+Simply looking at the amount of data avaliable for ethnicity and countries, it is obvious to see that most individuals from the sample are from the UK and USA and the ethnicity of individuals are predominantly white. The following barplot illustrate this.
+
+```{r 52}
+par(mfrow=c(2,1))
+
+count1 <- table(druguse$ethnicity)
+p25 <- barplot(count1, main = "Distribution of Ethnicity", sub="Figure 19" )
+count2 <- table(druguse$country)
+p26 <- barplot(count2, main = "Distribution of Country", sub="Figure 20" )
+
+```
+
+Hence, intuitively the data set will give insufficient or even biased information about the individual habits of substance consumption from ethnicities other than white and countries other than UK and USA, meaning the predictor is hence less relavent in this sense, even before inspecting any intrinsic relation between outcomes and ethnicity or countries.
+
+It is also worth noting that importance of predictors in arriving to a prediction actually depends on the model use in association with the predictors. As a start, we can inspect the logisitic regression model that we build in Question 2. Logisitic regression model classification is parametric, meaning a model with parameters has to be specified before prediction could be made. Hence having trained the model with data, it is possible to inspect the model and gain insights about the significance of predictors. For logistic regression one can run the wald test on individual coefficient that correspond to a predictor. By testing against the null hypothesis that the coefficient equal to zero, we can determine if the predictor is significant to the model as well as it direction of association with the outcome. (i.e. if a coefficient = 0 it implies that the value from that particular predictor has no impact on the outcome.)
+
+The following is the summary of the model built in **Question 2**
+```{r 53}
+summary(log_model)
+```
+
+Predictors that are associated with a very low p-value implies that the correponding coefficient of the predictor are believed to have a significant difference from zero, hence these predictors can be interpreted as important to the model. In our logistic regression summary, those predictors that have low p-values includes "education", "nicotine", "implusiveness", "opentoexperience", "sensation" and the indicator variables "UK", "agegroup45-54" and "agegroup55-64". This means in relations to this model those predictors are the more "important" ones. We can revisit this information after considering the importance of other predictors in other models.
+
+It is more tricky to get an idea of which variables are more important in other non-parametric methods. For example for KNN, there would not be a coefficient or parameter that are associated with the predictors and there are no model to inspect. Hence one way would be to to try excluding certain predictors when doing KNN and see which exclusion of variables will give the largest drop in cross validation error. This will give implication on whether the predictors are important in to the prediction. We will use k = 94 in the following KNN as it was calculated to be the optimal k for the KNN without using PCA and 0.8392491 would be the baseline cross validation error to compare to.
+
+Repeating KNN each with a predictor excluded from the dataset.
+```{r 54}
+
+cv_acc <- 0.8392491
+set.seed(123)
+kfolds <- 10
+knearest <- 94
+drop_cross_validation_accuracy <- rep(1,26)
+
+for (n in 1:26){
+  # create data to exclude 26 variables in total
+  knn_exclude <- knn_data_master[,-n]
+  no_of_data <- nrow(knn_exclude)
+  index <- sample(1:no_of_data, size=no_of_data)
+  k_cvd_er <- 0*(1:kfolds) # initialise
+  for (i in 1:kfolds) { 
+    # get a portion as test index
+    thisindex <- index[floor((i-1)/kfolds*no_of_data+1):floor(i/kfolds*no_of_data)]
+    # get current test and training set and preparing the inputs for the knn function
+    thistrain <- knn_exclude[-thisindex, ]
+    thistrain_truth <- knn_data_master[-thisindex,26]
+    thistest <- knn_exclude[thisindex, ]
+    thistest_truth <- knn_data_master[thisindex,26]
+    
+    # scale data
+    this_train_scaled <- scale(thistrain[,1:25], center=TRUE, scale= TRUE)
+    this_test_scaled <- knn_scaling(thistrain[,1:25],thistest[,1:25])
+    
+    # if sample are small and entries of certain predictors are zero, then just leave them as zero.
+    this_train_scaled[is.na(this_train_scaled)] <- 0
+    this_test_scaled[is.na(this_test_scaled)] <- 0
+    
+    knn_predict<- knn(this_train_scaled[,1:25],this_test_scaled[,1:25],thistrain_truth,knearest)
+    # calculate prediction error
+    k_cvd_er[i]=sum(knn_predict != thistest_truth)/nrow(thistest)
+    }
+  drop_cross_validation_accuracy[n] <- (cv_acc - (1-mean(k_cvd_er)))
+}
+```
+
+Visualizing the drop in accuracy
+```{r 55}
+ggplot()+geom_point(aes(x=names(knn_data_master)[1:26], y=drop_cross_validation_accuracy))+
+  theme(text = element_text(size=10), axis.text.x = element_text(angle=40, hjust=1))+
+  ggtitle(label = "Cross-validation accuracy drop for each predictors")+
+  xlab(label="Variable Excluded")+
+  ylab(label="Drop in Cross-validation error" )+
+  labs(caption ="Figure 21")
+```
+
+From this plot we can deduce that gender is a very important predictors for illegal drug use, as the model's cross-validation accuracy dropped by a relatively large amount when the predictor is removed. This is not supprising as in question 1 (figure 2) we also gain the sense that males generally have a high severity compare to females showing that it indeed has some relation to illegal drug comsumption and should be considered an important predictor.
+
+The similar idea can also be apply to evaluate predictors in random forest, as a key step in RandomForest is to exclude some predictors in decision tree building, through the tree constuction process, it is already possible to calculate the decrease in accuracy in predictions when a predictor is removed. Using a built in function we can generate a plot to show the mean decrease in accurarcy for each predictors (and mean decrease in Gini, explain below) for when different predictors are excluded.
+
+It will seems more sensible to inspect the tree generated for the 3 group classification problem instead as the model has a higher cross-validation accuracy and would be more practical if it is to be used in predicting substance usage.
+
+```{r 56}
+varImpPlot(prediction_tree5, main = "Importance of Predictors in RandomForest on 3 group classification")
+mtext('figure 22', side = 1, line=4,adj = -0.38)
+mtext('figure 23', side = 1, line=4,adj = 0.86)
+``` 
+
+Gini is a measure of the average gain in purity after each split, i.e. how homogeous the data are after it is separated at each node. A high Gini will imply a higher quality decision tree, therefore intuitively variables that are removed that result in a higher mean decrease in Gini would suggest that they are probably more important to the decision tree.
+
+In both plots we saw that dispite initially noting that the country predictor is less reliable as there are a lack of sample for other countries, except USA and UK, in random forest, it seems to the be most important predictor. This result can be explained as for the final model, we are not only classfying high and low level of illegal drug consumption but also added the "cannabis group". Looking at **plot 6** in the EDA (figure 8), we see that Americans are more likely to have a combination of high level of cannabis consumptions and a low severity score while Britains generally have a combination of low level of cannabis consumption with low severity scores. Hence knowing if an individual is from UK or USA would be now be of more importances in this setting.
+
+Other predictors that are below 'nicotine' and 'country' are mostly the personality predictors, this aligns with the findings in EDA (**plot 1 and 2**), where I show how the high and low level of illegal drug comsumption is associated with the personality score of an individuals. 
+
+Ethnicity, and consumption of legal substances other than nicotine are mainly at the bottom of the list, referencing back to the logisitic regression model constructed, the p-values associated with the coefficient of these predictors are generally quite high (>0.2). It is not suprising that ethinicity are not really useful as there are a serious lack of sample for ethnic groups other than whites. We should note that the issue with this predictor is not really about its lack of intrinsic relations with outcomes but its the problem from data collection. Hence there are potential for this predictor to be more relavent in prediction of substances use if more samples from ethnic groups other than white is avaliable. 
+
+Evaluating the methodology we used to identify important predictors for the KNN method, it is important to note that we are only calculating the cross-validation accuracy of KNN by excluding one predictor each time. This might not be effective, as some predictors might be confounded with other predictors, meaning that even if one is removed, there might not be a significant "information loss" in the dataset since the other confounded predictors still holds part of the related information, resulting not much of a drop in the performance of the machine learning method.
+
+In question 3 we notice that one could minimize confounding predictor through using PCA. By looking how the component are constructed, particularly the loadings, we are able to identify variables that has a higher contribution to the principle component. Especially looking at the predictors contribution to the principle component that explains the most variance, we can ascertain the importance of a component and perhaps even rank their importance.
+
+In the PCA conducted, the first two principle component out of the fourteen accounts for about 30% of the total variance in the data, hence the following we inspect predictors that contributed to these principle component through the plotting function fviz_contrib.
+
+```{r 57}
+p27 <- fviz_contrib(predictors.pca, choice = "var", axes = 1, top = 10)+
+  labs(caption ="Figure 24")
+p28 <- fviz_contrib(predictors.pca, choice = "var", axes = 2, top = 10)+
+  labs(caption ="Figure 25")
+
+grid.arrange(p27,p28,nrow=1)
+```
+
+(Note that this principle component analysis is only done on numerical data and ordered categorical data.)
+
+We can see that the top 3 contributor to either priciple components is actually 6 different personality scores, namely 'sensation' ,'impulsiveness' and 'consientiousness' for the first principle components and 'extraversion', 'neuroticism' and 'opentoexperience' in the second principle component. This strongly suggest that the personality scores are relatively important predictors amoungst the other numerical predictors. It also agrees with the results from inspecting the random forest model.
+
+In conclusion, interpreting all the information obtain by evaluating the 3 machine learning method used, we found that personality score are generally an important predictor to use in predicting illegal drug consumptions. From the KNN "predictor exclusion-cross validation", we particularly see gender being an important variable to consider. Country also seems to be be quite an important predictor along with personality score of individuals, when we are conducting the 3 groups classification. We also note that in all predictor evaluation methods that are carried out, we found that ethnicity and legal substance except nicotine consumption are amoungst the least important predictors. Additionally, all these results aligns with the impression gained from the EDA in question 1.
+
+Whilst such result is a possible indication that ethnicity and legal substance other than nicotine consumption level are predictors that are only weakly related with substance use, at least for ethnicity, one shall be more reserve for this interpretation as the problem of this predictor might be due to lag of sample from ethnic group other than white. This predictor might be more relatvent if more sample of other ethnic groups are avaliable.
